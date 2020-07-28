@@ -8,7 +8,7 @@ const bodyParser = express.json()
 
 
 bookmarksRouter
-  .route('/bookmark')
+  .route('/bookmarks')
   .get((req, res) => {
     res.json(bookmarks)
   })
@@ -49,7 +49,7 @@ bookmarksRouter
   })
 
 bookmarksRouter
-  .route('/bookmark/:id')
+  .route('/bookmarks/:id')
   .get((req, res) => {
     const { id } = req.params;
     const bookmark = bookmarks.find(bm => bm.id == id);
@@ -86,5 +86,5 @@ bookmarksRouter
       .status(204)
       .end();
   })
-
+  
   module.exports = bookmarksRouter
