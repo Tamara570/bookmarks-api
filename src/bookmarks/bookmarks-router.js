@@ -46,6 +46,7 @@ bookmarksRouter
         res.json(bookmarks.map(serializeBookmark))
       })
       .catch(next)
+
   })
   .post(bodyParser, (req, res) => {
     for (const field of ['title', 'url', 'rating']) {
@@ -112,5 +113,5 @@ bookmarksRouter
       .status(204)
       .end()
   })
-
+  
   module.exports = bookmarksRouter
