@@ -39,7 +39,7 @@ function getData(callback) {
 }
 
 bookmarksRouter
-  .route('/bookmarks')
+  .route('/')
   .get((req, res, next) => {
     BookmarksService.getAllBookmarks(req.app.get('db'))
       .then(bookmarks => {
@@ -55,6 +55,7 @@ bookmarksRouter
         return res.status(400).send(`'${field}' is required`)
       }
     }
+
     const { title, url, description, rating } = req.body
 
     if (!Number.isInteger(rating) || rating < 0 || rating > 5) {
@@ -67,16 +68,22 @@ bookmarksRouter
       return res.status(400).send(`'url' must be a valid URL`)
     }
 
-    const bookmark = { id: uuid(), title, url, description, rating }
+    const addBookmark = { id: uuid(), title, url, description, rating }
 
-    store.bookmarks.push(bookmark)
-
-    logger.info(`Bookmark with id ${bookmark.id} created`)
-    res
-      .status(201)
-      .location(`http://localhost:8000/bookmarks/${bookmark.id}`)
-      .json(bookmark)
+    BookmarksService.insertBookmark(
+      req.app.get('db'),
+      addBookmark
+    )
+      .then(bookmark => {
+        logger.info(`Bookmark with id ${bookmark.id} created.`)
+        res
+          .status(201)
+          .location(path.posix.join(req.originalUrl, `${bookmark.id}`))
+          .json(serializeBookmark(bookmark))
+      })
+      .catch(next)
   })
+  
 
 bookmarksRouter
   .route('/bookmarks/:bookmark_id')
@@ -94,24 +101,34 @@ bookmarksRouter
       })
       .catch(next)
   })
-  .delete((req, res) => {
+
+  .delete((req, res, next) => {
     const { bookmark_id } = req.params
+    
+    BookmarksService.deleteBookmark(
+      req.app.get('db'),
+      bookmark_id
+    )
+      .then(numRowsAffected => {
+        logger.info(`Bookmark with id ${bookmark_id} deleted.`)
+        res.status(204).end()
+      })
+      .catch(next)
+  })
 
-    const bookmarkIndex = store.bookmarks.findIndex(b => b.id === bookmark_id)
+  .patch(bodyParser, (req, res, next) => {
+    const { title, url, description, rating } = req.body
+    const updateBm = { title, url, description, rating }
 
-    if (bookmarkIndex === -1) {
-      logger.error(`Bookmark with id ${bookmark_id} not found.`)
-      return res
-        .status(404)
-        .send('Bookmark Not Found')
-    }
-
-    store.bookmarks.splice(bookmarkIndex, 1)
-
-    logger.info(`Bookmark with id ${bookmark_id} deleted.`)
-    res
-      .status(204)
-      .end()
+    BookmarksService.updateBookmark(
+      req.app.get('db'),
+      req.params.bookmark_id,
+      updateBm
+    )
+      .then(numRowsAffected => {
+        res.status(204).end()
+      })
+      .catch(next)
   })
   
   module.exports = bookmarksRouter
